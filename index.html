@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <title>CloudNot | Bulut Depolamalı</title>
+    
+    <!-- Firebase SDK (v11.0.0) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+        
+        // SİZİN FIREBASE YAPILANDIRMANIZ
+        const firebaseConfig = {
+            apiKey: "AIzaSyC3LNaRsG58P-vd_VnCwru1ae7qieuxrU4",
+            authDomain: "cloudnot-7ad67.firebaseapp.com",
+            projectId: "cloudnot-7ad67",
+            storageBucket: "cloudnot-7ad67.firebasestorage.app",
+            messagingSenderId: "534038917559",
+            appId: "1:534038917559:web:daf70b6d7001f4b23bf832",
+            measurementId: "G-74E7PTJMVP"
+        };
+        
+        // Firebase'i başlat
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+        
+        // Global değişkenler
+        window.auth = auth;
+        window.db = db;
+        window.provider = provider;
+        window.signInWithPopup = signInWithPopup;
+        window.signOut = signOut;
+        window.onAuthStateChanged = onAuthStateChanged;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        window.getDocs = getDocs;
+        window.query = query;
+        window.collection = collection;
+        window.orderBy = orderBy;
+        
+        console.log("✅ Firebase başarıyla başlatıldı!");
+    </script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+            color: #f1f5f9;
+            padding-bottom: 20px;
+        }
+        .login-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+        }
+        .login-logo { font-size: 80px; margin-bottom: 20px; }
+        .login-screen h1 { font-size: 2rem; margin-bottom: 10px; }
+        .login-screen p { color: #94a3b8; margin-bottom: 40px; }
+        .google-btn {
+            background: white; color: #333; border: none;
+            padding: 14px 32px; border-radius: 60px; font-size: 1rem;
+            font-weight: 600; display: flex; align-items: center; gap: 12px;
+            cursor: pointer; margin-top: 20px;
+        }
+        .google-btn:active { transform: scale(0.98); }
+        .google-icon { font-size: 1.5rem; font-weight: bold; }
+        .app-screen {
+            display: none; max-width: 500px; margin: 0 auto; padding: 20px;
+        }
+        .app-screen.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .header {
+            background: rgba(30,41,59,0.9); backdrop-filter: blur(10px);
+            border-radius: 30px; padding: 15px 20px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid #334155;
+        }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-avatar {
+            width: 45px; height: 45px; border-radius: 50%;
+            background: #3b82f6; display: flex; align-items: center;
+            justify-content: center; font-size: 1.2rem; font-weight: bold;
+        }
+        .user-name { font-weight: 600; font-size: 0.9rem; }
+        .user-email { font-size: 0.7rem; color: #94a3b8; }
+        .logout-btn { background: #ef4444; padding: 8px 16px; border-radius: 40px; font-size: 0.8rem; border: none; color: white; cursor: pointer; }
+        .tabs {
+            display: flex; background: #1e293b; margin-bottom: 20px;
+            border-radius: 60px; padding: 5px;
+        }
+        .tab {
+            flex: 1; text-align: center; padding: 12px; border-radius: 40px;
+            cursor: pointer; font-weight: 600; color: #94a3b8;
+            border: none; background: transparent; font-size: 0.85rem;
+        }
+        .tab.active { background: #3b82f6; color: white; }
+        .card {
+            background: #1e293b; border-radius: 24px; padding: 20px;
+            margin-bottom: 20px; border: 1px solid #334155;
+        }
+        .card h3 { margin-bottom: 15px; font-size: 1.1rem; }
+        input, textarea, select {
+            width: 100%; padding: 14px; background: #334155;
+            border: 1px solid #475569; border-radius: 16px;
+            color: #f1f5f9; font-size: 1rem; margin-bottom: 12px;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #3b82f6; }
+        button {
+            background: #3b82f6; color: white; border: none;
+            padding: 12px 20px; border-radius: 40px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        button:active { transform: scale(0.97); }
+        button.danger { background: #ef4444; }
+        button.secondary { background: #475569; }
+        button.warning { background: #f59e0b; }
+        .note-item, .task-item {
+            background: #334155; border-radius: 20px; padding: 15px;
+            margin-bottom: 10px; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .note-content, .task-content { flex: 1; cursor: pointer; }
+        .note-title { font-weight: 600; margin-bottom: 5px; }
+        .note-text { font-size: 0.8rem; color: #94a3b8; }
+        .note-date, .task-date { font-size: 0.7rem; color: #64748b; margin-top: 5px; }
+        .task-checkbox { width: 24px; height: 24px; margin-right: 15px; cursor: pointer; accent-color: #3b82f6; }
+        .task-completed { text-decoration: line-through; opacity: 0.6; }
+        .delete-btn { background: #ef4444; padding: 8px 12px; border-radius: 40px; font-size: 0.75rem; margin-left: 10px; }
+        .empty-message { text-align: center; color: #64748b; padding: 40px; }
+        .stats { display: flex; gap: 12px; margin-bottom: 20px; }
+        .stat-card {
+            flex: 1; background: #334155; border-radius: 20px;
+            padding: 15px; text-align: center;
+        }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #3b82f6; }
+        .stat-label { font-size: 0.7rem; color: #94a3b8; }
+        .setting-item {
+            display: flex; justify-content: space-between;
+            align-items: center; padding: 12px 0;
+            border-bottom: 1px solid #334155;
+        }
+        .modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9); display: flex; align-items: center;
+            justify-content: center; z-index: 1000; padding: 20px;
+        }
+        .modal-content {
+            background: #1e293b; border-radius: 30px; padding: 25px;
+            max-width: 500px; width: 100%;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-modal { background: none; font-size: 1.5rem; padding: 0; color: #94a3b8; }
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: white; padding: 12px 24px;
+            border-radius: 60px; z-index: 2000; animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .panel { display: none; }
+        .active-panel { display: block; }
+        .sync-status {
+            font-size: 0.7rem;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Giriş Ekranı -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-logo">☁️</div>
+    <h1>CloudNot</h1>
+    <p>Notlarınız ve görevleriniz<br>Bulutta güvende</p>
+    <button class="google-btn" id="googleSignInBtn">
+        <span class="google-icon">G</span>
+        Google ile Giriş Yap
+    </button>
+</div>
+
+<!-- Ana Uygulama -->
+<div class="app-screen" id="appScreen">
+    <div class="header">
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">👤</div>
+            <div>
+                <div class="user-name" id="userName">Kullanıcı</div>
+                <div class="user-email" id="userEmail">email@example.com</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <div class="sync-status" id="syncStatus">☁️ Senkron</div>
+            <button class="logout-btn" id="logoutBtn">Çıkış</button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="notes">📝 Notlar</button>
+        <button class="tab" data-tab="tasks">✅ Görevler</button>
+        <button class="tab" data-tab="stats">📊 İstatistik</button>
+        <button class="tab" data-tab="settings">⚙️ Ayarlar</button>
+    </div>
+
+    <div id="notesPanel" class="panel active-panel">
+        <div class="card">
+            <h3>✏️ Yeni Not Ekle</h3>
+            <input type="text" id="noteTitle" placeholder="Başlık">
+            <textarea id="noteContent" rows="3" placeholder="Not içeriği..."></textarea>
+            <button id="saveNoteBtn">💾 Notu Kaydet</button>
+        </div>
+        <div class="card">
+            <h3>📋 Tüm Notlarım</h3>
+            <div id="notesList"></div>
+        </div>
+    </div>
+
+    <div id="tasksPanel" class="panel">
+        <div class="card">
+            <h3>➕ Yeni Görev Ekle</h3>
+            <input type="text" id="taskTitle" placeholder="Görev başlığı">
+            <select id="taskPriority">
+                <option value="düşük">🟢 Düşük Öncelik</option>
+                <option value="orta" selected>🟡 Orta Öncelik</option>
+                <option value="yüksek">🔴 Yüksek Öncelik</option>
+            </select>
+            <button id="saveTaskBtn">➕ Görev Ekle</button>
+        </div>
+        <div class="card">
+            <h3>📋 Görev Listesi</h3>
+            <div id="tasksList"></div>
+        </div>
+    </div>
+
+    <div id="statsPanel" class="panel">
+        <div class="stats">
+            <div class="stat-card"><div class="stat-number" id="totalNotes">0</div><div class="stat-label">Toplam Not</div></div>
+            <div class="stat-card"><div class="stat-number" id="totalTasks">0</div><div class="stat-label">Toplam Görev</div></div>
+            <div class="stat-card"><div class="stat-number" id="completedTasks">0</div><div class="stat-label">Tamamlanan</div></div>
+        </div>
+        <div class="card">
+            <h3>📈 Detaylı İstatistik</h3>
+            <p>📅 Son not: <span id="lastNote">-</span></p>
+            <p>⭐ Tamamlanma oranı: <span id="completionRate">0</span>%</p>
+            <p>☁️ Veri depolama: <span style="color: #10b981;">Bulut (Firestore)</span></p>
+            <p>🔐 Giriş yapan: <span id="loggedInEmail">-</span></p>
+        </div>
+    </div>
+
+    <div id="settingsPanel" class="panel">
+        <div class="card">
+            <h3>⚙️ Uygulama Ayarları</h3>
+            <div class="setting-item">
+                <span>📤 Verileri Dışa Aktar (JSON)</span>
+                <button id="exportDataBtn" class="secondary">Dışa Aktar</button>
+            </div>
+            <div class="setting-item">
+                <span>🗑️ Tüm Verileri Sil</span>
+                <button id="clearAllBtn" class="danger">Sil</button>
+            </div>
+            <div class="setting-item">
+                <span>☁️ Veri Depolama</span>
+                <span style="color: #10b981;">✅ Bulut (Firebase)</span>
+            </div>
+            <div class="setting-item">
+                <span>🔄 Senkronizasyon</span>
+                <span id="syncStatusText">Otomatik</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let notes = [];
+    let tasks = [];
+    let currentUser = null;
+    let isLoading = false;
+
+    function showToast(msg) {
+        let t = document.querySelector('.toast');
+        if (t) t.remove();
+        t = document.createElement('div');
+        t.className = 'toast';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2000);
+    }
+
+    function updateSyncStatus(syncing) {
+        const statusEl = document.getElementById('syncStatus');
+        if (syncing) {
+            statusEl.innerHTML = '🔄 Senkron...';
+            statusEl.style.color = '#f59e0b';
+        } else {
+            statusEl.innerHTML = '☁️ Senkron';
+            statusEl.style.color = '#10b981';
+        }
+    }
+
+    // ============ FIRESTORE VERİ İŞLEMLERİ ============
+    async function loadFromCloud() {
+        if (!currentUser || isLoading) return;
+        isLoading = true;
+        updateSyncStatus(true);
+        
+        try {
+            // Notları yükle
+            const notesRef = doc(window.db, 'users', currentUser.uid);
+            const notesDoc = await window.getDoc(notesRef);
+            
+            if (notesDoc.exists()) {
+                const data = notesDoc.data();
+                notes = data.notes || [];
+                tasks = data.tasks || [];
+            } else {
+                // İlk kez giriş yapan kullanıcı için örnek veri
+                notes = [
+                    { id: Date.now(), title: 'Hoş Geldiniz!', content: 'Notlarınız artık bulutta saklanıyor. Telefon değiştirseniz bile notlarınız yanınızda!', date: new Date().toLocaleString('tr-TR') }
+                ];
+                tasks = [
+                    { id: Date.now()+1, title: 'Yeni bir not ekleyin', completed: false, priority: 'orta', date: new Date().toLocaleString('tr-TR') },
+                    { id: Date.now()+2, title: 'Bulut senkronizasyonu aktif', completed: false, priority: 'yüksek', date: new Date().toLocaleString('tr-TR') }
+                ];
+                await saveToCloud();
+            }
+            
+            renderAll();
+            showToast('☁️ Veriler buluttan yüklendi');
+        } catch (error) {
+            console.error('Yükleme hatası:', error);
+            showToast('❌ Veriler yüklenirken hata oluştu');
+        } finally {
+            isLoading = false;
+            updateSyncStatus(false);
+        }
+    }
+
+    async function saveToCloud() {
+        if (!currentUser || isLoading) return;
+        updateSyncStatus(true);
+        
+        try {
+            const userRef = doc(window.db, 'users', currentUser.uid);
+            await window.setDoc(userRef, {
+                notes: notes,
+                tasks: tasks,
+                lastUpdated: new Date().toISOString(),
+                email: currentUser.email
+            });
+            console.log('✅ Veriler buluta kaydedildi');
+        } catch (error) {
+            console.error('Kayıt hatası:', error);
+            showToast('❌ Veriler kaydedilirken hata oluştu');
+        } finally {
+            updateSyncStatus(false);
+        }
+    }
+
+    // ============ NOT İŞLEMLERİ ============
+    async function addNote(title, content) {
+        if (!title.trim()) { showToast('❌ Başlık giriniz'); return false; }
+        notes.unshift({ 
+            id: Date.now(), 
+            title: title.trim(), 
+            content: content.trim() || '(içerik yok)', 
+            date: new Date().toLocaleString('tr-TR') 
+        });
+        await saveToCloud();
+        renderNotes();
+        renderStats();
+        showToast('✅ Not eklendi');
+        return true;
+    }
+
+    async function updateNote(id, title, content) {
+        const index = notes.findIndex(n => n.id === id);
+        if (index !== -1) {
+            notes[index] = { ...notes[index], title: title.trim(), content: content.trim(), date: new Date().toLocaleString('tr-TR') };
+            await saveToCloud();
+            renderNotes();
+            showToast('✏️ Not güncellendi');
+        }
+    }
+
+    async function deleteNote(id) {
+        if (confirm('Bu notu silmek istediğinize emin misiniz?')) {
+            notes = notes.filter(n => n.id !== id);
+            await saveToCloud();
+            renderNotes();
+            renderStats();
+            showToast('🗑️ Not silindi');
+        }
+    }
+
+    function renderNotes() {
+        const container = document.getElementById('notesList');
+        if (notes.length === 0) { 
+            container.innerHTML = '<div class="empty-message">📭 Henüz not eklenmemiş</div>'; 
+            return; 
+        }
+        container.innerHTML = notes.map(note => `
+            <div class="note-item">
+                <div class="note-content" onclick="openNoteModal(${note.id})">
+                    <div class="note-title">📌 ${escapeHtml(note.title.substring(0,35))}${note.title.length>35?'...':''}</div>
+                    <div class="note-text">${escapeHtml(note.content.substring(0,60))}${note.content.length>60?'...':''}</div>
+                    <div class="note-date">📅 ${note.date}</div>
+                </div>
+                <button class="delete-btn" onclick="event.stopPropagation(); deleteNote(${note.id})">🗑️</button>
+            </div>
+        `).join('');
+    }
+
+    // ============ GÖREV İŞLEMLERİ ============
+    async function addTask(title, priority) {
+        if (!title.trim()) { showToast('❌ Görev başlığı giriniz'); return false; }
+        tasks.unshift({ 
+            id: Date.now(), 
+            title: title.trim(), 
+            completed: false, 
+            priority: priority, 
+            date: new Date().toLocaleString('tr-TR') 
+        });
+        await saveToCloud();
+        renderTasks();
+        renderStats();
+        showToast('✅ Görev eklendi');
+        return true;
+    }
+
+    async function toggleTask(id) {
+        const task = tasks.find(t => t.id === id);
+        if (task) { 
+            task.completed = !task.completed; 
+            await saveToCloud();
+            renderTasks(); 
+            renderStats(); 
+            showToast(task.completed ? '🎉 Görev tamamlandı!' : '↩️ Görev geri alındı'); 
+        }
+    }
+
+    async function deleteTask(id) {
+        if (confirm('Bu görevi silmek istediğinize emin misiniz?')) {
+            tasks = tasks.filter(t => t.id !== id);
+            await saveToCloud();
+            renderTasks();
+            renderStats();
+            showToast('🗑️ Görev silindi');
+        }
+    }
+
+    function getPriorityEmoji(p) { 
+        const map = { 'düşük': '🟢', 'orta': '🟡', 'yüksek': '🔴' };
+        return map[p] || '⚪'; 
+    }
+
+    function renderTasks() {
+        const container = document.getElementById('tasksList');
+        if (tasks.length === 0) { 
+            container.innerHTML = '<div class="empty-message">✅ Henüz görev eklenmemiş</div>'; 
+            return; 
+        }
+        const sorted = [...tasks.filter(t => !t.completed), ...tasks.filter(t => t.completed)];
+        container.innerHTML = sorted.map(task => `
+            <div class="task-item">
+                <input type="checkbox" class="task-checkbox" onchange="toggleTask(${task.id})" ${task.completed ? 'checked' : ''}>
+                <div class="task-content">
+                    <div class="note-title ${task.completed ? 'task-completed' : ''}">${getPriorityEmoji(task.priority)} ${escapeHtml(task.title)}</div>
+                    <div class="task-date">📅 ${task.date}</div>
+                </div>
+                <button class="delete-btn" onclick="deleteTask(${task.id})">🗑️</button>
+            </div>
+        `).join('');
+    }
+
+    function renderStats() {
+        document.getElementById('totalNotes').textContent = notes.length;
+        document.getElementById('totalTasks').textContent = tasks.length;
+        const completed = tasks.filter(t => t.completed).length;
+        document.getElementById('completedTasks').textContent = completed;
+        const rate = tasks.length > 0 ? Math.round((completed/tasks.length)*100) : 0;
+        document.getElementById('completionRate').textContent = rate;
+        document.getElementById('lastNote').textContent = notes.length > 0 ? notes[0].title : '-';
+        if (currentUser) document.getElementById('loggedInEmail').textContent = currentUser.email;
+    }
+
+    async function exportData() {
+        const data = { notes, tasks, exportDate: new Date().toLocaleString(), user: currentUser?.email };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `cloudnot_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast('📁 Veriler dışa aktarıldı');
+    }
+
+    async function clearAllData() {
+        if (confirm('⚠️ TÜM notlar ve görevler silinecek! Bu işlem geri alınamaz. Devam?')) {
+            notes = [];
+            tasks = [];
+            await saveToCloud();
+            renderAll();
+            showToast('🗑️ Tüm veriler silindi');
+        }
+    }
+
+    function renderAll() { renderNotes(); renderTasks(); renderStats(); }
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
+
+    function openNoteModal(id) {
+        const note = notes.find(n => n.id === id);
+        if (!note) return;
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header"><h3>✏️ Notu Düzenle</h3><button class="close-modal" onclick="this.closest('.modal').remove()">✖</button></div>
+                <input type="text" id="editTitle" value="${escapeHtml(note.title)}" placeholder="Başlık">
+                <textarea id="editContent" rows="5" placeholder="Not içeriği...">${escapeHtml(note.content)}</textarea>
+                <button id="updateNoteBtn" style="width:100%;">💾 Güncelle</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('updateNoteBtn').onclick = async () => {
+            await updateNote(id, document.getElementById('editTitle').value, document.getElementById('editContent').value);
+            modal.remove();
+        };
+    }
+
+    function switchPanel(panelId) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active-panel'));
+        document.getElementById(`${panelId}Panel`).classList.add('active-panel');
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`[data-tab="${panelId}"]`).classList.add('active');
+    }
+
+    async function handleGoogleSignIn() {
+        try {
+            const result = await window.signInWithPopup(window.auth, window.provider);
+            currentUser = result.user;
+            document.getElementById('userName').textContent = currentUser.displayName || currentUser.email.split('@')[0];
+            document.getElementById('userEmail').textContent = currentUser.email;
+            document.getElementById('userAvatar').textContent = currentUser.displayName ? currentUser.displayName[0].toUpperCase() : '👤';
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appScreen').classList.add('active');
+            await loadFromCloud();
+            showToast(`🔐 Hoş geldiniz, ${currentUser.displayName || currentUser.email.split('@')[0]}!`);
+        } catch (error) {
+            console.error('Giriş hatası:', error);
+            showToast('❌ Giriş başarısız: ' + error.message);
+        }
+    }
+
+    async function handleLogout() {
+        try {
+            await window.signOut(window.auth);
+            currentUser = null;
+            document.getElementById('appScreen').classList.remove('active');
+            document.getElementById('loginScreen').style.display = 'flex';
+            showToast('🔒 Çıkış yapıldı');
+        } catch (error) {
+            showToast('❌ Çıkış hatası');
+        }
+    }
+
+    if (window.onAuthStateChanged) {
+        window.onAuthStateChanged(window.auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('userName').textContent = currentUser.displayName || currentUser.email.split('@')[0];
+                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('userAvatar').textContent = currentUser.displayName ? currentUser.displayName[0].toUpperCase() : '👤';
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appScreen').classList.add('active');
+                await loadFromCloud();
+            }
+        });
+    }
+
+    document.getElementById('googleSignInBtn')?.addEventListener('click', handleGoogleSignIn);
+    document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+    document.getElementById('saveNoteBtn')?.addEventListener('click', async () => {
+        const title = document.getElementById('noteTitle').value;
+        const content = document.getElementById('noteContent').value;
+        if (await addNote(title, content)) {
+            document.getElementById('noteTitle').value = '';
+            document.getElementById('noteContent').value = '';
+        }
+    });
+    document.getElementById('saveTaskBtn')?.addEventListener('click', async () => {
+        const title = document.getElementById('taskTitle').value;
+        const priority = document.getElementById('taskPriority').value;
+        if (await addTask(title, priority)) {
+            document.getElementById('taskTitle').value = '';
+        }
+    });
+    document.getElementById('exportDataBtn')?.addEventListener('click', exportData);
+    document.getElementById('clearAllBtn')?.addEventListener('click', clearAllData);
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', (e) => switchPanel(e.target.getAttribute('data-tab')));
+    });
+
+    window.openNoteModal = openNoteModal;
+    window.deleteNote = deleteNote;
+    window.toggleTask = toggleTask;
+    window.deleteTask = deleteTask;
+
+    document.getElementById('loginScreen').style.display = 'flex';
+</script>
+</body>
+</html>
